@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo"
 )
@@ -24,6 +25,11 @@ func GetHandler(e echo.Context) error {
 }
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8002" // default port if not specified
+	}
+
 	// Create echo instance
 	e := echo.New()
 
@@ -31,5 +37,5 @@ func main() {
 	e.GET("/", GetHandler)
 
 	// Start echo and handle errors
-	e.Logger.Fatal(e.Start(":8002"))
+	e.Logger.Fatal(e.Start(":" + port))
 }
