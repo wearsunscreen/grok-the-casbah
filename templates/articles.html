@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>johncrane.dev portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cutive Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Courier Prime&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nanum Gothic Coding&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nova Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: black;
+            background-image: radial-gradient(rgba(0, 120, 0, 0.60), black 120%);
+            background-attachment: fixed;
+            border-bottom: 20px solid transparent;
+            /* height: 100vh; */
+            color: #11e411;
+            /* font-family: 'Fira Mono', monospace; */
+            /* font-family: 'VT323', monospace; */
+            font-family: 'Courier Prime', monospace;
+            font-size: 18px;
+            padding: 20px;
+            text-shadow: 0 0 4px #C8C8C8;
+            /* box-shadow: 0 0 5px #C8C8C8; */
+
+            ::selection {
+                background: #0080FF;
+                text-shadow: none;
+            }
+
+            .bbox {
+                border: 1px dashed #11ee11;
+                font-family: 'VT323', monospace;
+                /* font-family: 'Nanum Gothic Coding', monospace; */
+                font-size: 18px;
+                padding: 10px;
+                margin-bottom: 20px;
+                box-shadow: 0 0 3px #C8C8C8;
+            }
+
+            a:link {
+                color: rgb(174, 216, 248);
+                text-shadow: 0 0 2px #C8C8C8;
+            }
+
+            a:visited {
+                color: rgb(154, 212, 146);
+                text-shadow: 0 0 2px #C8C8C8;
+            }
+
+            td {
+                padding-left: 20px;
+                padding-right: 20px;
+                max-width: 800px;
+            }
+        }
+
+        body::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: repeating-linear-gradient(0deg,
+                    rgba(black, 0.15),
+                    rgba(black, 0.15) 1px,
+                    transparent 1px,
+                    transparent 2px);
+            z-index: -1;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Blog</h1>
+    <table>
+        {{if eq (len .) 0}}
+        <p>
+            Nothing to see here
+        </p>
+        {{end}}
+        {{range .}}
+        <tr>
+            <td></td>
+            <td>
+                <div class="bbox">
+                    <h2>
+                        {{.ID}}
+                    </h2>
+                    <p>
+                    {{.Text}}
+                 </p>
+                </div>
+            </td>
+            <td></td>
+        </tr>
+        {{end}}
+    </table>
+</body>
+
+</html>
