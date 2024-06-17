@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/labstack/echo"
 )
@@ -17,9 +18,10 @@ type StatusResponse struct {
 
 // Article contains the data of a single blog post
 type Article struct {
-	ID    int    `json:"id"`
-	Title string `json:"title"`
-	Text  string `json:"text"`
+	ID        int           `json:"id"`
+	Title     string        `json:"title"`
+	Content   template.HTML `json:"content"`
+	Timestamp time.Time     `json:"timestamp"`
 }
 
 // GetHandler shows home page
@@ -35,7 +37,10 @@ func GetHandler(e echo.Context) error {
 
 // GetArticle shows article page
 func GetBlog(e echo.Context) error {
-	articles := []Article{{1, "title1", "text1"}, {2, "title2", "text2"}}
+	articles := []Article{
+		{1, "title1", "<h2>h2</h2> <h3>h3</h3> <p>p</p>", time.Now()},
+		{2, "title2", "text2", time.Now()},
+	}
 
 	var t *template.Template
 	var err error
