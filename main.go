@@ -15,6 +15,10 @@ import (
 	"github.com/labstack/echo"
 )
 
+var (
+	db *sql.DB
+)
+
 // StatusResponse is the struct that will be serialized and sent back
 type StatusResponse struct {
 	Status string `json:"status"`
@@ -26,7 +30,7 @@ type Article struct {
 	ID        int           `json:"id"`
 	Title     string        `json:"title"`
 	Content   template.HTML `json:"content"`
-	Timestamp time.Time     `json:"timestamp"`
+	Timestamp int           `json:"timestamp"`
 }
 
 // GetHandler shows home page
@@ -41,10 +45,10 @@ func GetHandler(e echo.Context) error {
 }
 
 // GetArticle shows article page
-func GetBlog(e echo.Context) error {
+func GetBlogArticles_static(e echo.Context) error {
 	articles := []Article{
-		{1, "title1", "<h2>h2</h2> <h3>h3</h3> <p>p</p>", time.Now()},
-		{2, "title2", "text2", time.Now()},
+		{1, "title1", "<h2>h2</h2> <h3>h3</h3> <p>p</p>", int(time.Now().Unix())},
+		{2, "title2", "text2", int(time.Now().Unix())},
 	}
 
 	var t *template.Template
@@ -62,11 +66,46 @@ func GetBlog(e echo.Context) error {
 	return err
 }
 
+func GetBlogArticles(e echo.Context) error {
+	rows, err := db.Query("SELECT * FROM article")
+	if err != nil {
+		log.Println("failed to execute query: ", err)
+		os.Exit(1)
+	}
+	defer rows.Close()
+
+	var articles []Article
+
+	for rows.Next() {
+		var article Article
+
+		if err := rows.Scan(&article.ID, &article.Title, &article.Content, &article.Timestamp); err != nil {
+			log.Println("Error scanning row:", err)
+			return err
+		}
+
+		articles = append(articles, article)
+		log.Println(article.ID, article.Title)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("Error during rows iteration:", err)
+	}
+	return nil
+}
+
 func main() {
 	// open database
-	url := "libsql://[DATABASE].turso.io?authToken=[TOKEN]"
+	database := os.Getenv("TURSO_DATABASE")
+	token := os.Getenv("TURSO_AUTH_TOKEN")
 
-	db, err := sql.Open("libsql", url)
+	if database == "" || token == "" {
+		panic("TURSO_DATABASE and TURSO_AUTH_TOKEN environment variables must be set")
+	}
+	url := fmt.Sprintf("libsql://%s.turso.io?authToken=%s", database, token)
+
+	var err error
+	db, err = sql.Open("libsql", url)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to open db %s: %s", url, err)
 		os.Exit(1)
@@ -83,7 +122,7 @@ func main() {
 
 	// Add endpoint routes
 	e.GET("/", GetHandler)
-	e.GET("/blog", GetBlog)
+	e.GET("/blog", GetBlogArticles)
 
 	// Start echo and handle errors
 	e.Logger.Fatal(e.Start(":" + port))
