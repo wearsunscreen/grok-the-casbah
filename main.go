@@ -1,11 +1,16 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+
 	"time"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 
 	"github.com/labstack/echo"
 )
@@ -58,6 +63,16 @@ func GetBlog(e echo.Context) error {
 }
 
 func main() {
+	// open database
+	url := "libsql://[DATABASE].turso.io?authToken=[TOKEN]"
+
+	db, err := sql.Open("libsql", url)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open db %s: %s", url, err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8002"

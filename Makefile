@@ -1,4 +1,3 @@
-export PORT=8080
 
 run:
-	PORT=$(PORT) go run main.go
+	./env.sh &&	PORT=8080 go run main.go
