@@ -88,10 +88,23 @@ func GetBlogArticles(e echo.Context) error {
 		log.Println(article.ID, article.Title)
 	}
 
-	if err := rows.Err(); err != nil {
-		log.Println("Error during rows iteration:", err)
+	funcMap := template.FuncMap{
+		"formatTime": func(ts int) string {
+			t := time.Unix(int64(ts), 0)
+			return t.Format("Jan 2, 2006 3:04pm")
+		},
 	}
-	return nil
+	var t *template.Template
+	if t, err = template.New("articles.html").Funcs(funcMap).ParseFiles("templates/articles.html"); err != nil {
+		log.Println("Error parsing template", err)
+		e.Error(err)
+		return nil
+	}
+	if err = t.Execute(e.Response().Writer, articles); err != nil {
+		log.Println("Error execute template", err)
+		e.Error(err)
+	}
+	return err
 }
 
 func main() {
