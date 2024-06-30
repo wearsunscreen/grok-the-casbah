@@ -66,6 +66,41 @@ func GetBlogArticles_static(e echo.Context) error {
 	return err
 }
 
+// GetBlogArticle shows article page
+func GetBlogArticle(e echo.Context, id string) (*Article, error) {
+	query, err := db.Prepare("SELECT * FROM articles where id = ?")
+	if err != nil {
+		return nil, err
+	}
+	defer query.Close()
+
+	result := query.QueryRow(id)
+	article := new(Article)
+	if err = result.Scan(&article.ID, &article.Title, &article.Content, &article.Timestamp); err != nil {
+		return nil, err
+	}
+	log.Println(article.ID, article.Title)
+
+	funcMap := template.FuncMap{
+		"formatTime": func(ts int) string {
+			t := time.Unix(int64(ts), 0)
+			return t.Format("Jan 2, 2006 3:04pm")
+		},
+	}
+	var t *template.Template
+	if t, err = template.New("articles.html").Funcs(funcMap).ParseFiles("templates/articles.html"); err != nil {
+		log.Println("Error parsing template", err)
+		e.Error(err)
+		return nil, err
+	}
+	if err = t.Execute(e.Response().Writer, article); err != nil {
+		log.Println("Error execute template", err)
+		e.Error(err)
+	}
+	return nil, err
+}
+
+// GetBlogArticles shows all articles in a single page
 func GetBlogArticles(e echo.Context) error {
 	rows, err := db.Query("SELECT * FROM article")
 	if err != nil {
@@ -104,6 +139,30 @@ func GetBlogArticles(e echo.Context) error {
 		log.Println("Error execute template", err)
 		e.Error(err)
 	}
+	return err
+}
+
+// UpdateArticle updates an article in the database
+func UpdateArticle(e echo.Context, id string, article *Article) error {
+	query, err := db.Prepare("update articles set (title, content) = (?,?) where id=?")
+	if err != nil {
+		return err
+	}
+	defer query.Close()
+
+	_, err = query.Exec(article.Title, article.Content, id)
+	return err
+}
+
+// DeleteArticle deletes an article from the database
+func DeleteArticle(e echo.Context, id string) error {
+	query, err := db.Prepare("delete from articles where id=?")
+	if err != nil {
+		return err
+	}
+	defer query.Close()
+
+	_, err = query.Exec(id)
 	return err
 }
 
