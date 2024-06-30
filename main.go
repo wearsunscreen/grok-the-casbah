@@ -115,9 +115,13 @@ func getBlogArticle(e echo.Context) error {
 
 // getBlogArticles shows all articles in a single page
 func getBlogArticles(e echo.Context) error {
+	if db == nil {
+		// can be nil if we are running tests
+		db = openDB()
+	}
 	rows, err := db.Query("SELECT * FROM article")
 	if err != nil {
-		log.Println("failed to execute query: ", err)
+		log.Println("Could not query database: ", err)
 		os.Exit(1)
 	}
 	defer rows.Close()
@@ -188,8 +192,7 @@ func updateArticle(e echo.Context, id string, article *Article) error {
 	return err
 }
 
-func main() {
-	// open database
+func openDB() *sql.DB {
 	database := os.Getenv("TURSO_DATABASE")
 	token := os.Getenv("TURSO_AUTH_TOKEN")
 
@@ -204,6 +207,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to open db %s: %s", url, err)
 		os.Exit(1)
 	}
+	return db
+}
+
+func main() {
+	db = openDB()
 	defer db.Close()
 
 	port := os.Getenv("PORT")
