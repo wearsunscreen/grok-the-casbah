@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"time"
 
@@ -33,8 +34,20 @@ type Article struct {
 	Timestamp int           `json:"timestamp"`
 }
 
-// GetHandler shows home page
-func GetHandler(e echo.Context) error {
+// deleteArticle deletes an article from the database
+func deleteArticle(e echo.Context, id string) error {
+	query, err := db.Prepare("delete from articles where id=?")
+	if err != nil {
+		return err
+	}
+	defer query.Close()
+
+	_, err = query.Exec(id)
+	return err
+}
+
+// getHandler shows home page
+func getHandler(e echo.Context) error {
 	// Create response object
 	body := &StatusResponse{
 		Status: "<h1>Hello world from Grok-the-Casbah!</h1>",
@@ -45,7 +58,7 @@ func GetHandler(e echo.Context) error {
 }
 
 // GetArticle shows article page
-func GetBlogArticles_static(e echo.Context) error {
+func getBlogArticles_static(e echo.Context) error {
 	articles := []Article{
 		{1, "title1", "<h2>h2</h2> <h3>h3</h3> <p>p</p>", int(time.Now().Unix())},
 		{2, "title2", "text2", int(time.Now().Unix())},
@@ -66,42 +79,42 @@ func GetBlogArticles_static(e echo.Context) error {
 	return err
 }
 
-// GetBlogArticle shows article page
-func GetBlogArticle(e echo.Context, id string) (*Article, error) {
-	query, err := db.Prepare("SELECT * FROM articles where id = ?")
+// getBlogArticle shows article page
+func getBlogArticle(e echo.Context) error {
+	idString := e.Param("id")
+	log.Println("idString", idString)
+	id, err := strconv.Atoi(idString)
 	if err != nil {
-		return nil, err
+		log.Println("Error converting id to int", err)
+		return err
+	}
+
+	query, err := db.Prepare("SELECT * FROM article where id = ?")
+	if err != nil {
+		log.Println("Error preparing query", err)
+		return err
 	}
 	defer query.Close()
 
 	result := query.QueryRow(id)
 	article := new(Article)
 	if err = result.Scan(&article.ID, &article.Title, &article.Content, &article.Timestamp); err != nil {
-		return nil, err
+		log.Println("Error scanning row", err)
+		return err
 	}
 	log.Println(article.ID, article.Title)
 
-	funcMap := template.FuncMap{
-		"formatTime": func(ts int) string {
-			t := time.Unix(int64(ts), 0)
-			return t.Format("Jan 2, 2006 3:04pm")
-		},
+	articles := []Article{*article}
+	err = renderArticles(e, articles)
+	if err != nil {
+		log.Println("Error rendering articles", err)
+		return err
 	}
-	var t *template.Template
-	if t, err = template.New("articles.html").Funcs(funcMap).ParseFiles("templates/articles.html"); err != nil {
-		log.Println("Error parsing template", err)
-		e.Error(err)
-		return nil, err
-	}
-	if err = t.Execute(e.Response().Writer, article); err != nil {
-		log.Println("Error execute template", err)
-		e.Error(err)
-	}
-	return nil, err
+	return nil
 }
 
-// GetBlogArticles shows all articles in a single page
-func GetBlogArticles(e echo.Context) error {
+// getBlogArticles shows all articles in a single page
+func getBlogArticles(e echo.Context) error {
 	rows, err := db.Query("SELECT * FROM article")
 	if err != nil {
 		log.Println("failed to execute query: ", err)
@@ -142,8 +155,29 @@ func GetBlogArticles(e echo.Context) error {
 	return err
 }
 
-// UpdateArticle updates an article in the database
-func UpdateArticle(e echo.Context, id string, article *Article) error {
+func renderArticles(e echo.Context, article []Article) error {
+	var err error
+	funcMap := template.FuncMap{
+		"formatTime": func(ts int) string {
+			t := time.Unix(int64(ts), 0)
+			return t.Format("Jan 2, 2006 3:04pm")
+		},
+	}
+	var t *template.Template
+	if t, err = template.New("articles.html").Funcs(funcMap).ParseFiles("templates/articles.html"); err != nil {
+		log.Println("Error parsing template", err)
+		e.Error(err)
+		return err
+	}
+	if err = t.Execute(e.Response().Writer, article); err != nil {
+		log.Println("Error execute template", err)
+		e.Error(err)
+	}
+	return err
+}
+
+// updateArticle updates an article in the database
+func updateArticle(e echo.Context, id string, article *Article) error {
 	query, err := db.Prepare("update articles set (title, content) = (?,?) where id=?")
 	if err != nil {
 		return err
@@ -151,18 +185,6 @@ func UpdateArticle(e echo.Context, id string, article *Article) error {
 	defer query.Close()
 
 	_, err = query.Exec(article.Title, article.Content, id)
-	return err
-}
-
-// DeleteArticle deletes an article from the database
-func DeleteArticle(e echo.Context, id string) error {
-	query, err := db.Prepare("delete from articles where id=?")
-	if err != nil {
-		return err
-	}
-	defer query.Close()
-
-	_, err = query.Exec(id)
 	return err
 }
 
@@ -193,8 +215,9 @@ func main() {
 	e := echo.New()
 
 	// Add endpoint routes
-	e.GET("/", GetHandler)
-	e.GET("/blog", GetBlogArticles)
+	e.GET("/", getHandler)
+	e.GET("/blog", getBlogArticles)
+	e.GET("/blog/:id", getBlogArticle)
 
 	// Start echo and handle errors
 	e.Logger.Fatal(e.Start(":" + port))
