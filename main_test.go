@@ -46,7 +46,7 @@ func TestGetBlogArticles(t *testing.T) {
 	e.GET("/", getHandler)
 
 	for _, tc := range table {
-		// Create a new HTTP request to the /blog endpoint
+		// Create a new HTTP request
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
 
 		// Record the response
@@ -58,8 +58,8 @@ func TestGetBlogArticles(t *testing.T) {
 		// Assert the status code is 200
 		assert.Equal(t, tc.returnCode, rec.Code)
 
-		// Optionally, assert on the body content if you expect a specific response
-		if rec.Code == http.StatusOK {
+		// Assert on the body content
+		if len(tc.expected) > 0 {
 			assert.Contains(t, rec.Body.String(), tc.expected)
 		}
 	}

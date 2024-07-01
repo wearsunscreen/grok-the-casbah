@@ -82,7 +82,6 @@ func getBlogArticles_static(e echo.Context) error {
 // getBlogArticle shows article page
 func getBlogArticle(e echo.Context) error {
 	idString := e.Param("id")
-	log.Println("idString", idString)
 	id, err := strconv.Atoi(idString)
 	if err != nil {
 		log.Println("Error converting id to int", err)
