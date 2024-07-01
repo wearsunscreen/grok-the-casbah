@@ -115,10 +115,6 @@ func getBlogArticle(e echo.Context) error {
 
 // getBlogArticles shows all articles in a single page
 func getBlogArticles(e echo.Context) error {
-	if db == nil {
-		// can be nil if we are running tests
-		db = openDB()
-	}
 	rows, err := db.Query("SELECT * FROM article")
 	if err != nil {
 		log.Println("Could not query database: ", err)
@@ -192,6 +188,8 @@ func updateArticle(e echo.Context, id string, article *Article) error {
 	return err
 }
 
+// openDB opens a connection to the database and relies on environment variables
+// TURSO_DATABASE and TURSO_AUTH_TOKEN being set. openDB is also called from tests.
 func openDB() *sql.DB {
 	database := os.Getenv("TURSO_DATABASE")
 	token := os.Getenv("TURSO_AUTH_TOKEN")
@@ -214,9 +212,9 @@ func main() {
 	db = openDB()
 	defer db.Close()
 
-	port := os.Getenv("PORT")
+	port := os.Getenv("GTC_PORT")
 	if port == "" {
-		port = "8002"
+		port = "80"
 	}
 
 	// Create echo instance
