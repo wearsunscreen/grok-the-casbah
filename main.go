@@ -34,6 +34,38 @@ type Article struct {
 	Timestamp int           `json:"timestamp"`
 }
 
+// createRoutes creates the echo context and routes for the application.
+// This function is called from main and from test suites.
+func createRoutes() *echo.Echo {
+	e := echo.New()
+
+	e.GET("/", getHomePage)
+	e.GET("/blog", getBlogArticles)
+	e.GET("/blog/:id", getBlogArticle)
+
+	/*
+		// Custom HTTP error handler
+		e.HTTPErrorHandler = func(err error, c echo.Context) {
+			if he, ok := err.(*echo.HTTPError); ok {
+				if he.Code == http.StatusNotFound {
+					// Render your 404 page
+					c.Render(http.StatusNotFound, "404.html", nil)
+					return
+				}
+			}
+			// Handle other errors or pass them to the default handler
+			e.DefaultHTTPErrorHandler(err, c)
+		}
+
+		// Catch-all route for undefined paths
+		e.GET("/*", func(c echo.Context) error {
+			return c.Render(http.StatusNotFound, "404.html", nil)
+		})
+	*/
+
+	return e
+}
+
 // deleteArticle deletes an article from the database
 func deleteArticle(e echo.Context, id string) error {
 	query, err := db.Prepare("delete from articles where id=?")
@@ -43,39 +75,6 @@ func deleteArticle(e echo.Context, id string) error {
 	defer query.Close()
 
 	_, err = query.Exec(id)
-	return err
-}
-
-// getHandler shows home page
-func getHandler(e echo.Context) error {
-	// Create response object
-	body := &StatusResponse{
-		Status: "<h1>Hello world from Grok-the-Casbah!</h1>",
-		User:   e.Param("user"),
-	}
-
-	return e.HTML(http.StatusOK, body.Status)
-}
-
-// GetArticle shows article page
-func getBlogArticles_static(e echo.Context) error {
-	articles := []Article{
-		{1, "title1", "<h2>h2</h2> <h3>h3</h3> <p>p</p>", int(time.Now().Unix())},
-		{2, "title2", "text2", int(time.Now().Unix())},
-	}
-
-	var t *template.Template
-	var err error
-
-	if t, err = template.ParseFiles("templates/articles.html"); err != nil {
-		log.Println("Error parsing template", err)
-		e.Error(err)
-		return nil
-	}
-	if err := t.Execute(e.Response().Writer, articles); err != nil {
-		log.Println("Error execute template", err)
-		e.Error(err)
-	}
 	return err
 }
 
@@ -154,37 +153,15 @@ func getBlogArticles(e echo.Context) error {
 	return err
 }
 
-func renderArticles(e echo.Context, article []Article) error {
-	var err error
-	funcMap := template.FuncMap{
-		"formatTime": func(ts int) string {
-			t := time.Unix(int64(ts), 0)
-			return t.Format("Jan 2, 2006 3:04pm")
-		},
+// getHomePage shows home page
+func getHomePage(e echo.Context) error {
+	// Create response object
+	body := &StatusResponse{
+		Status: "<h1>Hello world from Grok-the-Casbah!</h1>",
+		User:   e.Param("user"),
 	}
-	var t *template.Template
-	if t, err = template.New("articles.html").Funcs(funcMap).ParseFiles("templates/articles.html"); err != nil {
-		log.Println("Error parsing template", err)
-		e.Error(err)
-		return err
-	}
-	if err = t.Execute(e.Response().Writer, article); err != nil {
-		log.Println("Error execute template", err)
-		e.Error(err)
-	}
-	return err
-}
 
-// updateArticle updates an article in the database
-func updateArticle(e echo.Context, id string, article *Article) error {
-	query, err := db.Prepare("update articles set (title, content) = (?,?) where id=?")
-	if err != nil {
-		return err
-	}
-	defer query.Close()
-
-	_, err = query.Exec(article.Title, article.Content, id)
-	return err
+	return e.HTML(http.StatusOK, body.Status)
 }
 
 // openDB opens a connection to the database and relies on environment variables
@@ -207,6 +184,39 @@ func openDB() *sql.DB {
 	return db
 }
 
+func renderArticles(e echo.Context, article []Article) error {
+	var err error
+	funcMap := template.FuncMap{
+		"formatTime": func(ts int) string {
+			t := time.Unix(int64(ts), 0)
+			return t.Format("Jan 2, 2006 3:04pm")
+		},
+	}
+	var t *template.Template
+	if t, err = template.New("articles.html").Funcs(funcMap).ParseFiles("templates/articles.html"); err != nil {
+		log.Println("Error parsing template", err)
+		e.Error(err)
+		return err
+	}
+	if err = t.Execute(e.Response().Writer, article); err != nil {
+		log.Println("Error execute template", err)
+		e.Error(err)
+	}
+	return err
+}
+
+// updateArticle updates an article in the database
+func updateArticle(_ echo.Context, id string, article *Article) error {
+	query, err := db.Prepare("update articles set (title, content) = (?,?) where id=?")
+	if err != nil {
+		return err
+	}
+	defer query.Close()
+
+	_, err = query.Exec(article.Title, article.Content, id)
+	return err
+}
+
 func main() {
 	db = openDB()
 	defer db.Close()
@@ -216,14 +226,9 @@ func main() {
 		port = "80"
 	}
 
-	// Create echo instance
-	e := echo.New()
-
-	// Add endpoint routes
-	e.GET("/", getHandler)
-	e.GET("/blog", getBlogArticles)
-	e.GET("/blog/:id", getBlogArticle)
+	// Create echo instance and routes
+	echo := createRoutes()
 
 	// Start echo and handle errors
-	e.Logger.Fatal(e.Start(":" + port))
+	echo.Logger.Fatal(echo.Start(":" + port))
 }

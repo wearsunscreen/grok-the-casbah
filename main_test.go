@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,22 +29,21 @@ func TestGetBlogArticles(t *testing.T) {
 		name       string
 		path       string
 		returnCode int
-		expected   string
+		expected   []string
 	}{
-		{"homepage", "/", 200, "Hello world from Grok-the-Casbah!"},
-		{"/blog", "/blog", 200, "first"},
-		{"/blog/1", "/blog/1", 200, "first"},
-		{"/blog/2", "/blog/2", 200, "second"},
-		{"/junk", "/junk", 404, ""},
+		{"homepage", "/", 200, []string{"Hello world from Grok-the-Casbah!"}},
+		{"/blog", "/blog", 200, []string{"first", "second"}},
+		{"/blog/1", "/blog/1", 200, []string{"first"}},
+		{"/blog/2", "/blog/2", 200, []string{"second"}},
+		{"/junk", "/junk", 404, []string{"404", "Page not found"}},
 	}
 
 	// Initialize Echo and routes
-	e := echo.New()
-	e.GET("/blog", getBlogArticles)
-	e.GET("/blog/:id", getBlogArticle)
-	e.GET("/", getHandler)
+	e := createRoutes()
 
 	for _, tc := range table {
+		log.Printf("Testing %s", tc.name)
+
 		// Create a new HTTP request
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
 
@@ -59,8 +57,10 @@ func TestGetBlogArticles(t *testing.T) {
 		assert.Equal(t, tc.returnCode, rec.Code)
 
 		// Assert on the body content
-		if len(tc.expected) > 0 {
-			assert.Contains(t, rec.Body.String(), tc.expected)
+		if tc.expected != nil {
+			for _, exp := range tc.expected {
+				assert.Contains(t, rec.Body.String(), exp)
+			}
 		}
 	}
 }
